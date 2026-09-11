@@ -1,0 +1,122 @@
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView, View, Text, RefreshControl, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import { WeatherResponse } from "../types/weather";
+import { getCurrentLocation } from "../storage/location";
+import { fetchWeather } from "../storage/weatherApi";
+import { getWeatherInfo } from "../storage/weatherCodes";
+
+
+
+// Default fallback location (Accra) in case permission is denied
+const DEFAULT_LOCATION = { latitude: 5.6037, longitude: -0.187 };
+
+
+export default function HomeScreen() {
+    const [weather, setWeather] = useState<WeatherResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [usingDefaultLocation, setUsingDefaultLocation] = useState(false);
+
+    const loadWeather = async () => {
+        try {
+            setError(null);
+            const coords = await getCurrentLocation();
+
+            const location = coords ?? DEFAULT_LOCATION;
+            setUsingDefaultLocation(coords === null);
+
+            const data = await fetchWeather(location.latitude, location.longitude);
+            setWeather(data);
+        } catch (err) {
+            setError("Couldn't load weather. Pull down to try again.");
+            console.error(err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+
+    useEffect(() => {
+        loadWeather();
+    }, []);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        loadWeather();
+    };
+
+
+    if (loading) {
+        return (
+            <SafeAreaView className="flex-1 bg-sky-100 items-center justify-center">
+                <ActivityIndicator size="large" color="#0369a1" />
+            </SafeAreaView>
+        );
+    }
+
+    if (error || !weather) {
+        return (
+            <SafeAreaView className="flex-1 bg-sky-100 items-center justify-center px-8">
+                <Ionicons name="cloud-offline-outline" size={48} color="#0369a1" />
+                <Text className="text-sky-900 text-base text-center mt-4">
+                    {error ?? "Something went wrong."}
+                </Text>
+            </SafeAreaView>
+        );
+    }
+    console.info("Weather data:", weather);
+
+    const current = getWeatherInfo(weather.current.weather_code);
+
+    return (
+        <SafeAreaView className="flex-1 bg-sky-100">
+            <ScrollView
+                contentContainerStyle={{ padding: 20 }}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+                }
+            >
+                {usingDefaultLocation && (
+                    <View className="bg-amber-100 rounded-xl px-4 py-2 mb-4">
+                        <Text className="text-amber-800 text-sm">
+                            Location access denied — showing default city.
+                        </Text>
+                    </View>
+                )}
+
+                <View className="items-center mt-6 mb-8">
+                    <Ionicons name={current.icon} size={72} color="#0369a1" />
+                    <Text className="text-6xl font-bold text-sky-900 mt-2">
+                        {Math.round(weather.current.temperature_2m)}°
+                    </Text>
+                    <Text className="text-lg text-sky-800 mt-1">{current.label}</Text>
+                </View>
+
+                <View className="flex-row justify-between bg-white/60 rounded-2xl p-4">
+                    <View className="items-center">
+                        <Text className="text-sky-600 text-xs">Feels like</Text>
+                        <Text className="text-sky-900 text-base font-semibold">
+                            {Math.round(weather.current.apparent_temperature)}°
+                        </Text>
+                    </View>
+                    <View className="items-center">
+                        <Text className="text-sky-600 text-xs">Humidity</Text>
+                        <Text className="text-sky-900 text-base font-semibold">
+                            {weather.current.relative_humidity_2m}%
+                        </Text>
+                    </View>
+                    <View className="items-center">
+                        <Text className="text-sky-600 text-xs">Wind</Text>
+                        <Text className="text-sky-900 text-base font-semibold">
+                            {Math.round(weather.current.wind_speed_10m)} km/h
+                        </Text>
+                    </View>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
