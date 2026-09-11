@@ -1,11 +1,12 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView, View, Text, RefreshControl, ActivityIndicator } from "react-native";
+import { ScrollView, View, Text, RefreshControl, ActivityIndicator, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { WeatherResponse } from "../types/weather";
 import { getCurrentLocation } from "../storage/location";
 import { fetchWeather } from "../storage/weatherApi";
 import { getWeatherInfo } from "../storage/weatherCodes";
+import { router, useLocalSearchParams } from "expo-router";
 
 
 
@@ -31,13 +32,24 @@ export default function HomeScreen() {
     const [error, setError] = useState<string | null>(null);
     const [usingDefaultLocation, setUsingDefaultLocation] = useState(false);
 
+    const params = useLocalSearchParams<{ lat?: string; lon?: string }>();
+
+
     const loadWeather = async () => {
         try {
             setError(null);
-            const coords = await getCurrentLocation();
 
-            const location = coords ?? DEFAULT_LOCATION;
-            setUsingDefaultLocation(coords === null);
+            let location: { latitude: number; longitude: number };
+
+            if (params.lat && params.lon) {
+                // A specific location was chosen from Search
+                location = { latitude: parseFloat(params.lat), longitude: parseFloat(params.lon) };
+                setUsingDefaultLocation(false);
+            } else {
+                const coords = await getCurrentLocation();
+                location = coords ?? DEFAULT_LOCATION;
+                setUsingDefaultLocation(coords === null);
+            }
 
             const data = await fetchWeather(location.latitude, location.longitude);
             setWeather(data);
@@ -52,8 +64,9 @@ export default function HomeScreen() {
 
 
     useEffect(() => {
+        setLoading(true);
         loadWeather();
-    }, []);
+    }, [params.lat, params.lon]);
 
     const handleRefresh = () => {
         setRefreshing(true);
@@ -99,6 +112,16 @@ export default function HomeScreen() {
                         </Text>
                     </View>
                 )}
+
+                {/* City and Location Header */}
+                <View className="flex-row items-center justify-between mb-2 mx-4">
+                    <Text className="text-sky-900 text-base font-semibold">
+                        {weather.timezone.split("/").pop()?.replace("_", " ")}
+                    </Text>
+                    <Pressable onPress={() => router.push("/search")}>
+                        <Ionicons name="location-outline" size={24} color="#0369a1" />
+                    </Pressable>
+                </View>
 
                 <View className="items-center mt-6 mb-8">
                     <Ionicons name={current.icon} size={72} color="#0369a1" />

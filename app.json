@@ -4,6 +4,7 @@
     "slug": "weather-app",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "weatherapp",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
@@ -27,7 +28,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to show local weather."
         }
-      ]
+      ],
+      "expo-router",
+      "expo-status-bar"
     ]
   }
 }
