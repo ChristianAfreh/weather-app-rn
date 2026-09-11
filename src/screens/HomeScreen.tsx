@@ -12,6 +12,10 @@ import { getWeatherInfo } from "../storage/weatherCodes";
 // Default fallback location (Accra) in case permission is denied
 const DEFAULT_LOCATION = { latitude: 5.6037, longitude: -0.187 };
 
+function formatHour(isoString: string): string {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: "numeric" });
+}
 
 export default function HomeScreen() {
     const [weather, setWeather] = useState<WeatherResponse | null>(null);
@@ -68,7 +72,8 @@ export default function HomeScreen() {
             </SafeAreaView>
         );
     }
-    console.info("Weather data:", weather);
+    
+    // console.info("Weather data:", weather);
 
     const current = getWeatherInfo(weather.current.weather_code);
 
@@ -116,6 +121,32 @@ export default function HomeScreen() {
                         </Text>
                     </View>
                 </View>
+
+                {/* Hourly Forecast */}
+                <Text className="text-sky-900 text-lg font-semibold mt-8 mb-3">
+                    Hourly Forecast
+                </Text>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 12 }}
+                >
+                    {weather.hourly.time.slice(0, 24).map((time, index) => {
+                        const hourInfo = getWeatherInfo(weather.hourly.weather_code[index]);
+                        return (
+                            <View
+                                key={time}
+                                className="items-center bg-white/60 rounded-2xl px-4 py-3 w-18"
+                            >
+                                <Text className="text-sky-600 text-xs mb-1">{formatHour(time)}</Text>
+                                <Ionicons name={hourInfo.icon} size={22} color="#0369a1" />
+                                <Text className="text-sky-900 text-sm font-semibold mt-1">
+                                    {Math.round(weather.hourly.temperature_2m[index])}°
+                                </Text>
+                            </View>
+                        );
+                    })}
+                </ScrollView>
             </ScrollView>
         </SafeAreaView>
     );
