@@ -17,6 +17,13 @@ function formatHour(isoString: string): string {
     return date.toLocaleTimeString([], { hour: "numeric" });
 }
 
+function formatDay(isoString: string, index: number): string {
+    if (index === 0) return "Today";
+    const date = new Date(isoString);
+    return date.toLocaleDateString([], { weekday: "short" });
+}
+
+
 export default function HomeScreen() {
     const [weather, setWeather] = useState<WeatherResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -72,7 +79,7 @@ export default function HomeScreen() {
             </SafeAreaView>
         );
     }
-    
+
     // console.info("Weather data:", weather);
 
     const current = getWeatherInfo(weather.current.weather_code);
@@ -147,6 +154,37 @@ export default function HomeScreen() {
                         );
                     })}
                 </ScrollView>
+
+                {/* Daily Forecast */}
+                <Text className="text-sky-900 text-lg font-semibold mt-8 mb-3">
+                    7-Day Forecast
+                </Text>
+                <View className="bg-white/60 rounded-2xl overflow-hidden">
+                    {weather.daily.time.map((day, index) => {
+                        const dayInfo = getWeatherInfo(weather.daily.weather_code[index]);
+                        const isLast = index === weather.daily.time.length - 1;
+                        return (
+                            <View
+                                key={day}
+                                className={`flex-row items-center justify-between px-4 py-3 ${isLast ? "" : "border-b border-sky-200"
+                                    }`}
+                            >
+                                <Text className="text-sky-900 text-base w-14">
+                                    {formatDay(day, index)}
+                                </Text>
+                                <Ionicons name={dayInfo.icon} size={20} color="#0369a1" />
+                                <View className="flex-row w-20 justify-end">
+                                    <Text className="text-sky-900 text-base font-semibold">
+                                        {Math.round(weather.daily.temperature_2m_max[index])}°
+                                    </Text>
+                                    <Text className="text-sky-500 text-base ml-2">
+                                        {Math.round(weather.daily.temperature_2m_min[index])}°
+                                    </Text>
+                                </View>
+                            </View>
+                        );
+                    })}
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
